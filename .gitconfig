@@ -1,0 +1,8 @@
+[user]
+	email = dinu.blanovschi@criptext.com
+	name = Dinu Blanovschi
+	signingkey = 1C7D468BFC109076
+[credential]
+	helper = store
+[init]
+	defaultBranch = main
