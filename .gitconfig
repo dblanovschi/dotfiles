@@ -1,11 +1,5 @@
-[user]
-	email = dinu.blanovschi@criptext.com
-	name = Dinu Blanovschi
-	signingkey = 473A97E4057C9448
 [credential]
 	helper = store
-[commit]
-	gpgsign = true
 [core]
 	autocrlf = input
 	editor = nvim
