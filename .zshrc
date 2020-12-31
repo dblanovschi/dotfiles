@@ -12,7 +12,3 @@ compinit
 # End of lines added by compinstall
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
-source "$HOME/.zprezto/init.zsh"
-eval "$(starship init zsh)"
-source "$HOME/.zprezto/init.zsh"
-eval "$(starship init zsh)"
