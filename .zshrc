@@ -14,5 +14,3 @@ compinit
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 source "$HOME/.zprezto/init.zsh"
 eval "$(starship init zsh)"
-source "$HOME/.zprezto/init.zsh"
-eval "$(starship init zsh)"
