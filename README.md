@@ -8,6 +8,7 @@ make sure you only run it from root of the repository, so here's how to do that:
 ```sh
 git clone --recursive https://github.com/dblanovschi/dotfiles.git
 cd dotfiles
+nvim setup.sh # change `name` and `email` at the top of the file
 ./setup.sh # will handle everything else for you
 ```
 
