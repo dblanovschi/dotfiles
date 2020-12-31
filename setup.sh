@@ -77,7 +77,7 @@ function pkg_name() {
 
 function arch_install() {
   # $1 = package name
-  sudo pacman -Sy "$1" || return
+  sudo pacman -Sy --needed "$1" || return
 }
 
 function arch_install_prompt() {
@@ -352,6 +352,12 @@ function gnome_() {
 # | DEVELOPMENT |
 # ===============
 
+function git_helper_(){
+  require_arch 'pass-git-helper' || return
+  arch_install_if_not_installed 'pass-git-helper@yay' || return
+  git config --global credential.helper '/usr/bin/pass-git-helper'
+}
+
 function git_gpg_() {
   gpg_key=$(gpg --list-secret-keys --keyid-format LONG "$email" | grep 'sec' | head -n 1 | awk '{print $2}' | cut -d '/' -f2)
   if [ "$gpg_key" = "" ]; then
@@ -368,6 +374,9 @@ function git_() {
   git config --global user.name "$name"
   git config --global user.email "$email"
 
+  if is_arch; then
+    setup_with_prompt 'git for credential helper(pass-git-helper)' 0 git_helper_
+  fi
   setup_with_prompt 'git for signing with gpg' 0 git_gpg_
 }
 

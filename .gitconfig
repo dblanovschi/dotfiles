@@ -1,5 +1,3 @@
-[credential]
-	helper = store
 [core]
 	autocrlf = input
 	editor = nvim
