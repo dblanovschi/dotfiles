@@ -8,195 +8,200 @@ dir="$(pwd)" # root of repository
 home="$HOME" # home directory
 dotconfig="${XDG_CONFIG_HOME:-$home/.config}" # .config folder
 
+# =========================
+# | STATIC(ISH) VARIABLES |
+# =========================
+rewrote_zshrc=false
+
 # ================
 # | UTILS        |
 # ================
 
 function yes_no_prompt() {
-  # $1 = prompt
-  # $2 = default
-  read -rs -k 1 "ans?$1"
-  echo
+    # $1 = prompt
+    # $2 = default
+    read -rs -k 1 "ans?$1"
+    echo
 
-  case "$ans" in
-  y|Y)
-    return 0
-  ;;
+    case "$ans" in
+    y|Y)
+        return 0
+    ;;
 
-  $'\n')
-    return $2
-  ;;
+    $'\n')
+        return $2
+    ;;
 
-  *)
-    return 1
-  esac
+    *)
+        return 1
+    esac
 }
 
 function setup_with_prompt() {
-  # $1 = name
-  # $2 = should set up by default (0 = true, 1 = false)
-  # $3 = function to call to configure
-  prompt="$(print -P "Configure: %F{green}%B$1%f%b?")"
-  if [ "$2" -eq 0 ]; then
-    prompt="$prompt [Y/n] "
-  else
-    prompt="$prompt [y/N] "
-  fi
-
-  if yes_no_prompt "$prompt" "$2"; then
-    print -P "Configuring %F{green}%B$1%f%b"
-    $3
-    print -P "Configured %F{green}%B$1%f%b"
-  fi
-}
-
-function arch_is_installed() {
-  # $1 = package name
-  if pacman -Qs "$1" > /dev/null; then
-    return 0
-  else
-    return 1
-  fi
-}
-
-function arch_is_group_installed() {
-  # $1 = group name
-  for package_name in "$(pacman -Sg $1)"; do
-    if ! arch_is_installed "$package_name"; then
-      return 1
-    fi
-  done
-  return 0
-}
-
-function pkg_name() {
-  # get package name from 'package@pacman' or 'package@yay'
-  
-  print "$1" | cut -d '@' -f1
-}
-
-function arch_install() {
-  # $1 = package name
-  sudo pacman -Sy --needed "$1" || return
-}
-
-function arch_install_prompt() {
-  # $1 = name
-  # $2 = should set up by default (0 = true, 1 = false)
-  # $3 = function to call to configure, or package@pacman or
-  # package@yay to directly install from pacman, respectively yay
-  # $4 = maybe 'cfg', meaning we want to configure this package, but didn't find it
-  
-  cfg_text=''
-
-  if [ $# -ge 4 ] && [ $4 = 'cfg' ]; then
-    cfg_text="$(print -P "(tried to configure this without installing it)")"
-  fi
-
-  prompt="$(print -P "Install %F{green}%B$1%f%b$cfg_text?")"
-  if [ "$2" -eq 0 ]; then
-    prompt="$prompt [Y/n] "
-  else
-    prompt="$prompt [y/N] "
-  fi
-
-  if [[ "$3" =~ '[a-zA-Z_\-]+@pacman' ]]; then
-    package_name=$(pkg_name "$3")
-    if arch_is_installed "$package_name"; then
-      return 0
+    # $1 = name
+    # $2 = should set up by default (0 = true, 1 = false)
+    # $3 = function to call to configure
+    prompt="$(print -P "Configure: %F{green}%B$1%f%b?")"
+    if [ "$2" -eq 0 ]; then
+        prompt="$prompt [Y/n] "
+    else
+        prompt="$prompt [y/N] "
     fi
 
     if yes_no_prompt "$prompt" "$2"; then
-      print -P "Installing %F{green}%B$1%f%b from %F{blue}%b$package_name(pacman)%f%b"
-      sudo pacman -Sy "$package_name" || return
+        print -P "Configuring %F{green}%B$1%f%b"
+        $3
+        print -P "Configured %F{green}%B$1%f%b"
     fi
-  else
-    if [[ "$3" =~ '[a-zA-Z_\-]@yay' ]]; then
-      package_name=$(pkg_name "$3")
-      if ! arch_is_installed 'yay'; then
-        print -P "%F{red}%Byay%b not installed%f. Cannot install %B$package_name%b"
+}
 
-        setup_with_prompt 'install yay' 0 yay
-
-        if ! arch_is_installed 'yay'; then
-          print -P "%F{yellow}%BWon't install $package_name%f%b"
-        fi
-      fi
-      if arch_is_installed "$package_name"; then
+function arch_is_installed() {
+    # $1 = package name
+    if pacman -Qs "$1" > /dev/null; then
         return 0
-      fi
-
-      if yes_no_prompt "$prompt" "$2"; then
-        print -P "Installing %F{green}%B$1%f%b from %F{blue}%b$package_name(yay)%f%b"
-        yay -Sy "$package_name" || return
-      fi
     else
-      if yes_no_prompt "$prompt" "$2"; then
-        print -P "Installing %F{green}%B$1%f%b"
-        $3 || return
-      fi
+        return 1
     fi
-  fi
+}
+
+function arch_is_group_installed() {
+    # $1 = group name
+    for package_name in "$(pacman -Sg $1)"; do
+        if ! arch_is_installed "$package_name"; then
+            return 1
+        fi
+    done
+    return 0
+}
+
+function pkg_name() {
+    # get package name from 'package@pacman' or 'package@yay'
+
+    print "$1" | cut -d '@' -f1
+}
+
+function arch_install() {
+    # $1 = package name
+    sudo pacman -Sy --needed "$1" || return
+}
+
+function arch_install_prompt() {
+    # $1 = name
+    # $2 = should set up by default (0 = true, 1 = false)
+    # $3 = function to call to configure, or package@pacman or
+    # package@yay to directly install from pacman, respectively yay
+    # $4 = maybe 'cfg', meaning we want to configure this package, but didn't find it
+
+    cfg_text=''
+
+    if [ $# -ge 4 ] && [ $4 = 'cfg' ]; then
+        cfg_text="$(print -P "(tried to configure this without installing it)")"
+    fi
+
+    prompt="$(print -P "Install %F{green}%B$1%f%b$cfg_text?")"
+    if [ "$2" -eq 0 ]; then
+        prompt="$prompt [Y/n] "
+    else
+        prompt="$prompt [y/N] "
+    fi
+
+    if [[ "$3" =~ '[a-zA-Z_\-]+@pacman' ]]; then
+        package_name=$(pkg_name "$3")
+        if arch_is_installed "$package_name"; then
+            return 0
+        fi
+
+        if yes_no_prompt "$prompt" "$2"; then
+            print -P "Installing %F{green}%B$1%f%b from %F{blue}%b$package_name(pacman)%f%b"
+            sudo pacman -Sy "$package_name" || return
+        fi
+    else
+        if [[ "$3" =~ '[a-zA-Z_\-]@yay' ]]; then
+            package_name=$(pkg_name "$3")
+            if ! arch_is_installed 'yay'; then
+                print -P "%F{red}%Byay%b not installed%f. Cannot install %B$package_name%b"
+
+                setup_with_prompt 'install yay' 0 yay
+
+                if ! arch_is_installed 'yay'; then
+                    print -P "%F{yellow}%BWon't install $package_name%f%b"
+                fi
+            fi
+            if arch_is_installed "$package_name"; then
+                return 0
+            fi
+
+            if yes_no_prompt "$prompt" "$2"; then
+                print -P "Installing %F{green}%B$1%f%b from %F{blue}%b$package_name(yay)%f%b"
+                yay -Sy "$package_name" || return
+            fi
+        else
+            if yes_no_prompt "$prompt" "$2"; then
+                print -P "Installing %F{green}%B$1%f%b"
+                $3 || return
+            fi
+        fi
+    fi
 }
 
 function arch_install_prompt_if_not_installed() {
-  # All arguments are passed to arch_install_prompt, but intercepts the name of the package
-  # and checks if it is not already installed first.
-  package="$(pkg_name "$3")"
+    # All arguments are passed to arch_install_prompt, but intercepts the name of the package
+    # and checks if it is not already installed first.
+    package="$(pkg_name "$3")"
 
-  if ! arch_is_installed "$package"; then
-    arch_install_prompt $@
-  fi
+    if ! arch_is_installed "$package"; then
+        arch_install_prompt $@
+    fi
 }
 
 function arch_install_group_prompt_if_not_installed() {
-  # All arguments are passed to arch_install_prompt, but intercepts the name of the group
-  # and checks if it is not already installed first.
-  group="$(pkg_name "$3")"
+    # All arguments are passed to arch_install_prompt, but intercepts the name of the group
+    # and checks if it is not already installed first.
+    group="$(pkg_name "$3")"
 
-  if ! arch_is_group_installed "$group"; then
-    arch_install_prompt $@
-  fi
+    if ! arch_is_group_installed "$group"; then
+        arch_install_prompt $@
+    fi
 }
 
 function arch_install_if_not_installed() {
-  # $1 = target (pkg@pacman or pkg@yay)
-  if [[ "$1" =~ '[a-zA-Z_\-]+@pacman' ]]; then
-    package_name=$(pkg_name "$1")
-    if arch_is_installed "$package_name"; then
-      return 0
-    fi
-
-    print -P "Installing %F{green}%B$1%f%b from %F{blue}%b$package_name(pacman)%f%b"
-    sudo pacman -Sy "$package_name" || return
-  else
-    if [[ "$1" =~ '[a-zA-Z_\-]@yay' ]]; then
-      package_name=$(pkg_name "$1")
-      if ! arch_is_installed 'yay'; then
-        print -P "%F{red}%Byay%b not installed%f. Cannot install %B$package_name%b"
-
-        setup_with_prompt 'install yay' 0 yay
-
-        if ! arch_is_installed 'yay'; then
-          print -P "%F{yellow}%BWon't install $package_name%f%b"
+    # $1 = target (pkg@pacman or pkg@yay)
+    if [[ "$1" =~ '[a-zA-Z_\-]+@pacman' ]]; then
+        package_name=$(pkg_name "$1")
+        if arch_is_installed "$package_name"; then
+          return 0
         fi
-      fi
-      if arch_is_installed "$package_name"; then
-        return 0
-      fi
 
-      print -P "Installing %F{green}%B$1%f%b from %F{blue}%b$package_name(yay)%f%b"
-      yay -Sy "$package_name" || return
+        print -p "installing %f{green}%b$1%f%b from %f{blue}%b$package_name(pacman)%f%b"
+        sudo pacman -sy "$package_name" || return
+    else
+        if [[ "$1" =~ '[a-zA-Z_\-]@yay' ]]; then
+            package_name=$(pkg_name "$1")
+            if ! arch_is_installed 'yay'; then
+                print -P "%F{red}%Byay%b not installed%f. Cannot install %B$package_name%b"
+
+                setup_with_prompt 'install yay' 0 yay
+
+                if ! arch_is_installed 'yay'; then
+                    print -P "%F{yellow}%BWon't install $package_name%f%b"
+                fi
+            fi
+            if arch_is_installed "$package_name"; then
+                return 0
+            fi
+
+            print -P "Installing %F{green}%B$1%f%b from %F{blue}%b$package_name(yay)%f%b"
+            yay -Sy "$package_name" || return
+        fi
     fi
-  fi
 }
 
 function is_arch() {
-  if [ -f "$(which pacman)" ]; then
-    return 0
-  else
-    return 1
-  fi
+    if [ -f "$(which pacman)" ]; then
+        return 0
+    else
+        return 1
+    fi
 }
 
 function require_git() {
@@ -243,44 +248,45 @@ function action() {
 # ================
 
 function alacritty_() {
-  if is_arch; then
-    arch_install_prompt_if_not_installed 'alacritty' 0 'alacritty@pacman' 'cfg'
-  fi
-  mkdir -p "$dotconfig/alacritty"
-  action "$dir/alacritty.yml" "$dotconfig/alacritty/alacrity.yml"
+    if is_arch; then
+        arch_install_prompt_if_not_installed 'alacritty' 0 'alacritty@pacman' 'cfg'
+    fi
+    mkdir -p "$dotconfig/alacritty"
+    action "$dir/alacritty.yml" "$dotconfig/alacritty/alacritty.yml"
 }
 
 function zshrc_() {
-  cp "$dir/.zshrc" "$home/.zshrc"
+    cp "$dir/.zshrc" "$home/.zshrc"
+    export rewrote_zshrc=true
 }
 
 function zsh_default_shell_() {
-  chsh -s $(which zsh)
+    chsh -s $(which zsh)
 }
 
 function add_starship_to_zshrc_() {
-  echo 'eval "$(starship init zsh)"' >> "$home/.zshrc"
+    echo 'eval "$(starship init zsh)"' >> "$home/.zshrc"
 }
 
 function starship_() {
-  curl -fsSL https://starship.rs/install.sh | bash
+    curl -fsSL https://starship.rs/install.sh | bash
 
-  setup_with_prompt 'Add starship to zshrc' 0 add_starship_to_zshrc_
+    setup_with_prompt 'Add starship to zshrc' 0 add_starship_to_zshrc_
 }
 
 function zprezto_() {
-  action "$dir/.zprezto" "$HOME/.zprezto"
-  action "$dir/.zpreztorc" "$HOME/.zprezto/runcoms/zpreztorc"
+    action "$dir/.zprezto" "$HOME/.zprezto"
+    action "$dir/.zpreztorc" "$HOME/.zprezto/runcoms/zpreztorc"
 
-  echo 'source "$HOME/.zprezto/init.zsh"' >> "$home/.zshrc"
+    echo 'source "$HOME/.zprezto/init.zsh"' >> "$home/.zshrc"
 }
 
 function terminal_() {
-  setup_with_prompt   'alacritty'                    0   alacritty_
-  setup_with_prompt   'zsh'                          0   zshrc_
-  setup_with_prompt   'zprezto'                      0   zprezto_
-  setup_with_prompt   'Set zsh as default shell'     0   zsh_default_shell_
-  setup_with_prompt   'Install starship'             0   starship_
+    setup_with_prompt   'alacritty'                    0   alacritty_
+    setup_with_prompt   'zsh'                          0   zshrc_
+    setup_with_prompt   'zprezto'                      0   zprezto_
+    setup_with_prompt   'Set zsh as default shell'     0   zsh_default_shell_
+    setup_with_prompt   'Install starship'             0   starship_
 }
 
 # ==================
@@ -288,31 +294,31 @@ function terminal_() {
 # ==================
 
 function yay_() {
-  require_git 'yay' || return
-  require_arch 'yay' || return
-  if ! arch_is_group_installed "base-devel"; then
-    sudo pacman -Sy base-devel || return
-  fi
-  git clone https://aur.archlinux.org/yay.git
-  pushd yay
-  makepkg -si || return
-  popd
-  rm -rf yay
+    require_git 'yay' || return
+    require_arch 'yay' || return
+    if ! arch_is_group_installed "base-devel"; then
+        sudo pacman -Sy base-devel || return
+    fi
+    git clone https://aur.archlinux.org/yay.git
+    pushd yay
+    makepkg -si || return
+    popd
+    rm -rf yay
 }
 
 function usual_packages_() {
-  arch_install_prompt_if_not_installed 'man-db'    0 'man-db@pacman'
-  arch_install_prompt_if_not_installed 'man-pages' 0 'man-pages@pacman'
-  arch_install_prompt_if_not_installed 'nvim'      0 'neovim@pacman'
-  arch_install_prompt                  'yay'       0 yay_
-  arch_install_prompt_if_not_installed 'scc'       0 'scc@yay'
-  arch_install_prompt_if_not_installed 'alacritty' 0 'alacritty@pacman'
-  arch_install_prompt_if_not_installed 'discord'   0 'discord@pacman'
-  arch_install_prompt_if_not_installed 'firefox'   0 'firefox@pacman'
-  arch_install_prompt_if_not_installed 'llvm'      0 'llvm@pacman'
-  arch_install_prompt_if_not_installed 'marktext'  0 'marktext-bin@yay'
-  arch_install_prompt_if_not_installed 'xclip'     0 'xclip@pacman'
-  arch_install_prompt_if_not_installed 'moreutils' 0 'moreutils@pacman'
+    arch_install_prompt_if_not_installed 'man-db'    0 'man-db@pacman'
+    arch_install_prompt_if_not_installed 'man-pages' 0 'man-pages@pacman'
+    arch_install_prompt_if_not_installed 'nvim'      0 'neovim@pacman'
+    arch_install_prompt                  'yay'       0 yay_
+    arch_install_prompt_if_not_installed 'scc'       0 'scc@yay'
+    arch_install_prompt_if_not_installed 'alacritty' 0 'alacritty@pacman'
+    arch_install_prompt_if_not_installed 'discord'   0 'discord@pacman'
+    arch_install_prompt_if_not_installed 'firefox'   0 'firefox@pacman'
+    arch_install_prompt_if_not_installed 'llvm'      0 'llvm@pacman'
+    arch_install_prompt_if_not_installed 'marktext'  0 'marktext-bin@yay'
+    arch_install_prompt_if_not_installed 'xclip'     0 'xclip@pacman'
+    arch_install_prompt_if_not_installed 'moreutils' 0 'moreutils@pacman'
 }
 
 # ============
@@ -320,32 +326,32 @@ function usual_packages_() {
 # ============
 
 function fonts_() {
-  require_arch 'fonts' || return
-  arch_install_prompt 'Monoid font'         0 'ttf-monoid@yay'
-  arch_install_prompt 'JetBrains Mono font' 0 'ttf-jetbrains-mono@pacman'
+    require_arch 'fonts' || return
+    arch_install_prompt 'Monoid font'         0 'ttf-monoid@yay'
+    arch_install_prompt 'JetBrains Mono font' 0 'ttf-jetbrains-mono@pacman'
 }
 
 function set_gnome_fonts_() {
-  gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrains Mono 10'
-  gsettings set org.gnome.desktop.interface document-font-name 'JetBrains Mono 11'
-  gsettings set org.gnome.desktop.interface font-name 'JetBrains Mono 11'
+    gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrains Mono 10'
+    gsettings set org.gnome.desktop.interface document-font-name 'JetBrains Mono 11'
+    gsettings set org.gnome.desktop.interface font-name 'JetBrains Mono 11'
 }
 
 function paperwm_() {
-  require_git 'paperwm' || return
-  git clone https://github.com/paperwm/PaperWM
-  pushd PaperWM
-  ./install.sh
-  popd
+    require_git 'paperwm' || return
+    git clone https://github.com/paperwm/PaperWM
+    pushd PaperWM
+    ./install.sh
+    popd
 }
 
 function gnome_() {
-  if is_arch; then
-    setup_with_prompt 'Install fonts'   0 fonts_
-  fi
+    if is_arch; then
+        setup_with_prompt 'Install fonts'   0 fonts_
+    fi
 
-  setup_with_prompt   'Set gnome fonts' 0 set_gnome_fonts_
-  setup_with_prompt   'Install paperwm' 0 paperwm_
+    setup_with_prompt   'Set gnome fonts' 0 set_gnome_fonts_
+    setup_with_prompt   'Install paperwm' 0 paperwm_
 }
 
 # ===============
@@ -353,55 +359,67 @@ function gnome_() {
 # ===============
 
 function git_helper_(){
-  require_arch 'pass-git-helper' || return
-  arch_install_if_not_installed 'pass-git-helper@yay' || return
-  git config --global credential.helper '/usr/bin/pass-git-helper'
+    require_arch 'pass-git-helper' || return
+    arch_install_if_not_installed 'pass-git-helper@yay' || return
+    git config --global credential.helper '/usr/bin/pass-git-helper'
 }
 
 function git_gpg_() {
-  gpg_key=$(gpg --list-secret-keys --keyid-format LONG "$email" | grep 'sec' | head -n 1 | awk '{print $2}' | cut -d '/' -f2)
-  if [ "$gpg_key" = "" ]; then
-    print -P "Cannot find gpg key for email <%F{blue}%B$email%f%b>"
-    return 1
-  fi
-  git config --global user.signingkey "$gpg_key"
-  git config --global commit.gpgsign true
+    gpg_key=$(gpg --list-secret-keys --keyid-format LONG "$email" | grep 'sec' | head -n 1 | awk '{print $2}' | cut -d '/' -f2)
+    if [ "$gpg_key" = "" ]; then
+        print -P "Cannot find gpg key for email <%F{blue}%B$email%f%b>"
+        return 1
+    fi
+    git config --global user.signingkey "$gpg_key"
+    git config --global commit.gpgsign true
 }
 
 function git_() {
-  cp "$dir/.gitconfig" "$home/.gitconfig"
+    cp "$dir/.gitconfig" "$home/.gitconfig"
 
-  git config --global user.name "$name"
-  git config --global user.email "$email"
+    git config --global user.name "$name"
+    git config --global user.email "$email"
 
-  if is_arch; then
-    setup_with_prompt 'git for credential helper(pass-git-helper)' 0 git_helper_
-  fi
-  setup_with_prompt 'git for signing with gpg' 0 git_gpg_
+    if is_arch; then
+        setup_with_prompt 'git for credential helper(pass-git-helper)' 0 git_helper_
+    fi
+    setup_with_prompt 'git for signing with gpg' 0 git_gpg_
+}
+
+function add_dotcargo_bin_to_path_() {
+    echo 'export PATH="$PATH:$HOME/.cargo/bin"' >> ~/.zshrc
 }
 
 function rustup_() {
-  if is_arch; then
-    if ! arch_is_installed 'rustup'; then
-      arch_install 'rustup' || return
+    if is_arch; then
+        if ! arch_is_installed 'rustup'; then
+            arch_install 'rustup' || return
+        else
+            print -P 'Looks like %F{green}%Brustup%f%b is already installed.'
+        fi
     else
-      print -P 'Looks like %F{green}%Brustup%f%b is already installed.'
+        curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh || return
     fi
-  else
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh || return
-  fi
-  print 'Installing stable toolchain and components.'
-  rustup toolchain install stable
-  rustup component add rustfmt clippy
+    print 'Installing stable toolchain and components.'
+    rustup toolchain install stable
+    rustup component add rustfmt clippy
+
+    if $rewrote_zshrc; then
+        setup_with_prompt "Add ~/.cargo/bin to \$PATH (in .zshrc)" 0 add_dotcargo_bin_to_path_
+    fi
 }
 
 function c_cpp_() {
-  arch_install_group_prompt_if_not_installed 'base-devel' 0 'base-devel@pacman'
-  arch_install_prompt_if_not_installed       'gdb'        0 'gdb@pacman'
-  arch_install_prompt_if_not_installed       'clang'      0 'clang@pacman'
-  arch_install_prompt_if_not_installed       'lldb'       0 'lldb@pacman'
-  arch_install_prompt_if_not_installed       'ltrace'     0 'ltrace@pacman'
-  arch_install_prompt_if_not_installed       'strace'     0 'strace@pacman'
+    arch_install_group_prompt_if_not_installed 'base-devel' 0 'base-devel@pacman'
+    arch_install_prompt_if_not_installed       'gdb'        0 'gdb@pacman'
+    arch_install_prompt_if_not_installed       'clang'      0 'clang@pacman'
+    arch_install_prompt_if_not_installed       'lldb'       0 'lldb@pacman'
+    arch_install_prompt_if_not_installed       'ltrace'     0 'ltrace@pacman'
+    arch_install_prompt_if_not_installed       'strace'     0 'strace@pacman'
+}
+
+function idea_vim_rc_() {
+    action "$dir/.ideavimrc" "$home/.ideavimrc"
 }
 
 function dev_() {
@@ -411,6 +429,8 @@ function dev_() {
   if is_arch; then
     setup_with_prompt 'C/C++ development'     0                       c_cpp_
   fi
+
+  setup_with_prompt 'IdeaVim rc'              0                       idea_vim_rc_
 }
 
 # =================

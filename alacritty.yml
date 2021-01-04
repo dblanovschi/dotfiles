@@ -3,7 +3,7 @@ env:
 
 window:
   dimensions:
-    columns: 120
+    columns: 200
     lines: 38
 
   padding:
@@ -11,7 +11,7 @@ window:
     y: 15
   decorations: none
 
-  dynamic_title: true
+  dynamic_title: false
 
 # Background opacity
 #
